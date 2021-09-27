@@ -6,7 +6,7 @@ using UnityEngine;
 [CustomEditor(typeof(BezierCurve))]
 public class BezierCurveInspector : Editor
 {
-	public int lineSteps = 10;
+	public int lineSteps = 12;
 
 	private BezierCurve curve;
 	private Transform handleTransform;
@@ -26,7 +26,7 @@ public class BezierCurveInspector : Editor
 			? handleTransform.rotation 
 			: Quaternion.identity;
 
-		miniPoints = new Vector3[curve.lineSteps * curve.points.Length];
+		miniPoints = (curve.lineSteps > 0) ? new Vector3[curve.lineSteps * curve.points.Length] : new Vector3[1];
 
 		Handles.color = Color.blue;
 		ShowControlPoint();
@@ -34,7 +34,10 @@ public class BezierCurveInspector : Editor
 		Handles.color = Color.white;
 		ShowLineSteps();
 
-		CreateVertices();
+		if (curve.lineSteps > 0)
+        {
+			CreateVertices();
+        }
 	}
 
 	private void ShowControlPoint()
@@ -51,7 +54,7 @@ public class BezierCurveInspector : Editor
     {
 		int miniPointsIndex = 0;
 
-		for (int i = 1; i <= curve.points.Length && i >= 0 && i + 2 < curve.points.Length; i++)
+		for (int i = 0; i <= curve.points.Length && i >= 0 && i + 2 < curve.points.Length; i++)
 		{
 			Vector3 lineStartMini = curve.GetPoint(i, 0);
 			for (int j = 1; j <= curve.lineSteps; j++)
@@ -89,56 +92,38 @@ public class BezierCurveInspector : Editor
 		int t = 0;
 		int v = 0;
 		Vector3 normal = new Vector3();
-		roadObject = GenerateObject();
 
+		roadVertices = new Vector3[miniPoints.Length * 4];
+		roadTriangles = new int[roadVertices.Length];
+
+		roadObject = GenerateObject();
 		roadMesh = new Mesh();
 		roadObject.GetComponent<MeshFilter>().mesh = roadMesh;
 
-		roadVertices = new Vector3[miniPoints.Length * 4];
-		roadTriangles = new int[roadVertices.Length / 3];
-
-		for (int i = 0; i + 1 < miniPoints.Length && v + 3 < roadVertices.Length; i++)
+		for (int i = 0; i + 1 < miniPoints.Length && v + 3 < roadVertices.Length; i+=1)
         {
 
-			if (i > 1 && i + 1 < miniPoints.Length)
-            {
-				Vector3 n1 = miniPoints[i];
-				Vector3 n2 = miniPoints[i + 1];
-				Vector3 n3 = miniPoints[i + 1] + Vector3.up;
-				normal = GetNormal(n1, n2, n3);
-			}
+			Vector3 n1 = miniPoints[i];
+			Vector3 n2 = miniPoints[i + 1];
+			Vector3 n3 = miniPoints[i + 1] + Vector3.up;
+			normal = GetNormal(n1, n2, n3);
 
 			roadVertices[v] = miniPoints[i];
-			roadVertices[v+1] = miniPoints[i] + normal;
+			roadVertices[v+1] = miniPoints[i] + normal * curve.width;
 			roadVertices[v+2] = miniPoints[i+1];
-			roadVertices[v+3] = miniPoints[i+1] + normal;
-
-			// hver andet sæt skal connecte
-
+			roadVertices[v+3] = miniPoints[i+1] + normal * curve.width;
 			v += 4;
 		}
 
-		for (int i = 0; t + 9 < roadTriangles.Length; i+=4)
+		for (int i = 0; t + 9 < roadTriangles.Length - 9; i+=4)
 		{
 			roadTriangles[t] = i;
 			roadTriangles[t+1] = i+1;
 			roadTriangles[t+2] = i+2;
 
 			roadTriangles[t+3] = i+1;
-			roadTriangles[t+4] = i+3;
+			roadTriangles[t+4] = i+5;
 			roadTriangles[t+5] = i+2;
-
-			/*roadTriangles[t+7] = i+1;
-			roadTriangles[t+8] = i+2;
-			roadTriangles[t+9] = i+3;
-			*/
-			//Handles.DoPositionHandle(roadVertices[8], handleRotation);
-			//Handles.DoPositionHandle(roadVertices[9], handleRotation);
-			//Handles.DoPositionHandle(roadVertices[10], handleRotation);
-
-			//roadTriangles[t + 6] = i + 1;
-			//roadTriangles[t + 7] = i + 3;
-			//roadTriangles[t + 8] = i + 2;
 
 			t += 9;
 		}

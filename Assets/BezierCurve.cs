@@ -3,7 +3,8 @@
 public class BezierCurve : MonoBehaviour
 {
 	public Vector3[] points;
-	public int lineSteps;
+	public int lineSteps = 12;
+	public float width;
 
 	public void Reset()
 	{
